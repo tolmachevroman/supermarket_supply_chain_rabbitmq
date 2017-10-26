@@ -5,8 +5,9 @@ defmodule SupermarketSupplyChainRabbitmq.Application do
 
   use Application
 
-  def start(_type, _args) do
-    # {:ok, _pid} = Sequence.Supervisor.start_link(123)
+  @products ["milk", "beer", "juice"]
 
+  def start(_type, _args) do
+    {:ok, _pid} = SupermarketSupplyChainRabbitmq.Supervisor.start_link(@products)
   end
 end

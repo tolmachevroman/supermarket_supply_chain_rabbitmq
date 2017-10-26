@@ -8,12 +8,12 @@ defmodule SupplyChain.Consumer do
   #External API
 
   def start_link(product) do
-    GenServer.start_link(__MODULE__, [], [])
+    {:ok, _pid} = GenServer.start_link(__MODULE__, product, [])
   end
 
   def init(product) do
     {:ok, connection} = Connection.open("amqp://guest:guest@localhost")
-    {:ok, channel} = Channel.open
+    {:ok, channel} = Channel.open(connection)
 
 
     Exchange.direct(channel, @exchange, durable: true)
