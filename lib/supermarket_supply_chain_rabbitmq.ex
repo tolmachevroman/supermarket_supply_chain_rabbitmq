@@ -1,3 +1,0 @@
-defmodule SupermarketSupplyChainRabbitmq do
-  
-end
