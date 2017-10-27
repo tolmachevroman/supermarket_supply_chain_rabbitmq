@@ -27,4 +27,28 @@ defmodule SupplyChain.Consumer do
     {:ok, channel}
   end
 
+  # Confirmation sent by the broker after registering this process as a consumer
+  def handle_info({:basic_consume_ok, %{consumer_tag: consumer_tag}}, channel) do
+    {:noreply, channel}
+  end
+
+  # Sent by the broker when the consumer is unexpectedly cancelled (such as after a queue deletion)
+  def handle_info({:basic_cancel, %{consumer_tag: consumer_tag}}, channel) do
+    {:stop, :normal, channel}
+  end
+
+  # Confirmation sent by the broker to the consumer process after a Basic.cancel
+  def handle_info({:basic_cancel_ok, %{consumer_tag: consumer_tag}}, channel) do
+    {:noreply, channel}
+  end
+
+  # Sent by the broker when a message is delivered
+  def handle_info({:basic_deliver, payload, %{delivery_tag: tag, redelivered: redelivered}}, channel) do
+    spawn fn -> consume(channel, tag, redelivered, payload) end
+    {:noreply, channel}
+  end
+
+  def consume(channel, tag, redelivered, payload) do
+    IO.puts "Received #{payload}"
+  end
 end
