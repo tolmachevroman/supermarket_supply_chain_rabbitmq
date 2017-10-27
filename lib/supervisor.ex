@@ -1,6 +1,8 @@
 defmodule SupermarketSupplyChainRabbitmq.Supervisor do
   use Supervisor
 
+  @stock 10_000
+
   def start_link(products) do
     {:ok, _pid} = Supervisor.start_link(__MODULE__, products)
   end
@@ -11,7 +13,7 @@ defmodule SupermarketSupplyChainRabbitmq.Supervisor do
       products,
       [],
       fn product, list ->
-         [worker(SupplyChain.Consumer, [product], id: product) | list]
+         [worker(SupplyChain.Consumer, [product, @stock], id: product) | list]
        end
     )
 
