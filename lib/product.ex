@@ -5,5 +5,6 @@ defmodule SupplyChain.Product do
 
   defstruct [:id, :name, quantity: @default_quantity]
 
+  def default_quantity, do: @default_quantity
   def threshold, do: @threshold
 end

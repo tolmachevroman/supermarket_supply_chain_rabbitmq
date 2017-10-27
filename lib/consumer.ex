@@ -15,7 +15,7 @@ defmodule SupplyChain.Consumer do
 
     Exchange.direct(channel, @exchange, durable: true)
 
-    {:ok, %{queue: queue_name}} = Queue.declare(channel, "", exclusive: true)
+    {:ok, %{queue: queue_name}} = Queue.declare(channel, "")
     Queue.bind(channel, queue_name, @exchange, routing_key: product.id)
 
     # IO.inspect {:ok, {channel, product}}
@@ -48,22 +48,25 @@ defmodule SupplyChain.Consumer do
       {channel, product}) do
     IO.puts "Trying to buy #{payload} of #{product.name}, with stock quantity of #{product.quantity}"
 
-    # Emulate supply if we consumed 70% of the product
+    # Emulate supply if we consumed more than the threshold of the product
     quantity_bought = String.to_integer(payload)
     quantity = String.to_integer(product.quantity)
     new_quantity = quantity - quantity_bought
 
     cond do
        new_quantity < 0 ->
-         IO.puts "Cannot buy, not enough quantity"
+         IO.puts "Cannot buy #{product.name}, not enough quantity"
+        #  Basic.reject channel, tag, requeue: true
+         Basic.ack channel, tag
          {:noreply, {channel, product}}
       new_quantity < String.to_integer(Product.threshold) ->
-        IO.puts "We need to buy more"
-        {:noreply, {channel, %Product{quantity: new_quantity}}}
-        # TODO emulate sleep while buying more
+        IO.puts "Buying more #{product.name}..."
+        Basic.ack channel, tag
+        {:noreply, {channel, %Product{product | quantity: Product.default_quantity}}}
       true ->
         IO.puts "Ok, thanks for buying"
-        {:noreply, {channel, %Product{quantity: new_quantity}}}
+        Basic.ack channel, tag
+        {:noreply, {channel, %Product{product | quantity: Integer.to_string(new_quantity)}}}
     end
 
   end
