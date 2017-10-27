@@ -4,8 +4,13 @@ defmodule SupermarketSupplyChainRabbitmq.Application do
   @moduledoc false
 
   use Application
+  alias SupplyChain.Product
 
-  @products ["milk", "beer", "juice"]
+  @products [
+    %Product{id: "1", name: "Milk"},
+    %Product{id: "2", name: "Beer"},
+    %Product{id: "3", name: "Juice"}
+  ]
 
   def start(_type, _args) do
     {:ok, _pid} = SupermarketSupplyChainRabbitmq.Supervisor.start_link(@products)
