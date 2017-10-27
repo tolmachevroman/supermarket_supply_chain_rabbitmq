@@ -22,6 +22,9 @@ defmodule SupplyChain.Consumer do
 
     Basic.qos(channel, prefetch_count: 10)
     {:ok, _consumer_tag} = Basic.consume(channel, queue_name)
+
+    # IO.inspect product
+
     {:ok, {channel, product}}
   end
 
@@ -42,12 +45,27 @@ defmodule SupplyChain.Consumer do
 
   # Sent by the broker when a message is delivered
   def handle_info({:basic_deliver, payload, %{delivery_tag: tag, redelivered: redelivered}},
-      {channel, %Product{name: name, quantity: quantity} = product}) do
-    IO.puts "handle_info of #{payload} of #{name}"
+      {channel, product}) do
+    IO.puts "Trying to buy #{payload} of #{product.name}, with stock quantity of #{product.quantity}"
 
-    #TODO emulate supply if we consumed 70% of the product
+    # Emulate supply if we consumed 70% of the product
+    quantity_bought = String.to_integer(payload)
+    quantity = String.to_integer(product.quantity)
+    new_quantity = quantity - quantity_bought
 
-    {:noreply, {channel, product}}
+    cond do
+       new_quantity < 0 ->
+         IO.puts "Cannot buy, not enough quantity"
+         {:noreply, {channel, product}}
+      new_quantity < String.to_integer(Product.threshold) ->
+        IO.puts "We need to buy more"
+        {:noreply, {channel, %Product{quantity: new_quantity}}}
+        # TODO emulate sleep while buying more
+      true ->
+        IO.puts "Ok, thanks for buying"
+        {:noreply, {channel, %Product{quantity: new_quantity}}}
+    end
+
   end
 
 end
