@@ -14,17 +14,11 @@ defmodule SupplyChain.Consumer do
     {:ok, channel} = Channel.open(connection)
 
     Exchange.direct(channel, @exchange, durable: true)
-
     {:ok, %{queue: queue_name}} = Queue.declare(channel, "")
     Queue.bind(channel, queue_name, @exchange, routing_key: product.id)
 
-    # IO.inspect {:ok, {channel, product}}
-
-    Basic.qos(channel, prefetch_count: 10)
+    Basic.qos(channel, prefetch_count: 1)
     {:ok, _consumer_tag} = Basic.consume(channel, queue_name)
-
-    # IO.inspect product
-
     {:ok, {channel, product}}
   end
 
@@ -55,16 +49,15 @@ defmodule SupplyChain.Consumer do
 
     cond do
        new_quantity < 0 ->
-         IO.puts "Cannot buy #{product.name}, not enough quantity"
-        #  Basic.reject channel, tag, requeue: true
-         Basic.ack channel, tag
+        #  IO.puts "Cannot buy #{product.name}, not enough quantity"
+         Basic.reject channel, tag, requeue: true
          {:noreply, {channel, product}}
       new_quantity < String.to_integer(Product.threshold) ->
-        IO.puts "Buying more #{product.name}..."
+        # IO.puts "Buying more #{product.name}..."
         Basic.ack channel, tag
         {:noreply, {channel, %Product{product | quantity: Product.default_quantity}}}
       true ->
-        IO.puts "Ok, thanks for buying"
+        # IO.puts "Ok, thanks for buying"
         Basic.ack channel, tag
         {:noreply, {channel, %Product{product | quantity: Integer.to_string(new_quantity)}}}
     end
