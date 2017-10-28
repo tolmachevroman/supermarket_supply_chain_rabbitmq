@@ -13,32 +13,33 @@ defmodule SupplyChain.Consumer do
     {:ok, connection} = Connection.open("amqp://guest:guest@localhost")
     {:ok, channel} = Channel.open(connection)
 
+    queue_name = "amqp.queue." <> product.name
     Exchange.direct(channel, @exchange, durable: true)
-    {:ok, %{queue: queue_name}} = Queue.declare(channel, "")
+    Queue.declare(channel, queue_name, durable: true)
     Queue.bind(channel, queue_name, @exchange, routing_key: product.id)
 
-    Basic.qos(channel, prefetch_count: 1)
-    {:ok, _consumer_tag} = Basic.consume(channel, queue_name)
+    Basic.qos(channel, prefetch_count: 10)
+    Basic.consume(channel, queue_name)
     {:ok, {channel, product}}
   end
 
   # Confirmation sent by the broker after registering this process as a consumer
-  def handle_info({:basic_consume_ok, %{consumer_tag: consumer_tag}}, {channel, product}) do
+  def handle_info({:basic_consume_ok, %{consumer_tag: _consumer_tag}}, {channel, product}) do
     {:noreply, {channel, product}}
   end
 
   # Sent by the broker when the consumer is unexpectedly cancelled (such as after a queue deletion)
-  def handle_info({:basic_cancel, %{consumer_tag: consumer_tag}}, {channel, product}) do
+  def handle_info({:basic_cancel, %{consumer_tag: _consumer_tag}}, {channel, product}) do
     {:stop, :normal, {channel, product}}
   end
 
   # Confirmation sent by the broker to the consumer process after a Basic.cancel
-  def handle_info({:basic_cancel_ok, %{consumer_tag: consumer_tag}}, {channel, product}) do
+  def handle_info({:basic_cancel_ok, %{consumer_tag: _consumer_tag}}, {channel, product}) do
     {:noreply, {channel, product}}
   end
 
   # Sent by the broker when a message is delivered
-  def handle_info({:basic_deliver, payload, %{delivery_tag: tag, redelivered: redelivered}},
+  def handle_info({:basic_deliver, payload, %{delivery_tag: tag, redelivered: _redelivered}},
       {channel, product}) do
     IO.puts "Trying to buy #{payload} of #{product.name}, with stock quantity of #{product.quantity}"
 
@@ -49,16 +50,22 @@ defmodule SupplyChain.Consumer do
 
     cond do
        new_quantity < 0 ->
-        #  IO.puts "Cannot buy #{product.name}, not enough quantity"
-         Basic.reject channel, tag, requeue: true
+        spawn fn ->
+          IO.puts "Cannot buy #{product.name}, not enough quantity"
+          Basic.reject(channel, tag, requeue: false)
+        end
          {:noreply, {channel, product}}
       new_quantity < String.to_integer(Product.threshold) ->
-        # IO.puts "Buying more #{product.name}..."
-        Basic.ack channel, tag
+        spawn fn ->
+          IO.puts "Buying more #{product.name}..."
+          Basic.ack(channel, tag)
+        end
         {:noreply, {channel, %Product{product | quantity: Product.default_quantity}}}
       true ->
-        # IO.puts "Ok, thanks for buying"
-        Basic.ack channel, tag
+        spawn fn ->
+          IO.puts "Ok, thanks for buying"
+          Basic.ack(channel, tag)
+        end
         {:noreply, {channel, %Product{product | quantity: Integer.to_string(new_quantity)}}}
     end
 
