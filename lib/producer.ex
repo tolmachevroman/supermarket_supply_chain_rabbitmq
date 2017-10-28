@@ -14,10 +14,15 @@ defmodule SupplyChain.Producer do
     {:ok, channel}
   end
 
+  # Emulate one-time buy message
+  def buy(quantity) do
+    GenServer.cast(__MODULE__, {:buy, quantity})
+  end
+
   # Emulate constant flow of messages
   def loop_buying do
-    GenServer.cast(__MODULE__, {:buy, :rand.uniform(1000)})
-    :timer.sleep(2)
+    buy(:rand.uniform(1000))
+    # :timer.sleep(1)
     loop_buying()
   end
 
