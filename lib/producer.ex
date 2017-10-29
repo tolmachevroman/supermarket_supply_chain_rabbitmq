@@ -1,4 +1,4 @@
-defmodule SupplyChain.Producer do
+defmodule SupermarketSupplyChain.Producer do
   use GenServer
   use AMQP
 
@@ -22,10 +22,12 @@ defmodule SupplyChain.Producer do
   # Emulate constant flow of messages
   def loop_buying do
     buy(:rand.uniform(1000))
-    # :timer.sleep(1)
+    # Adding even 1 millisecond of timeout between messages dramatically diminishes load
+    :timer.sleep(1)
     loop_buying()
   end
 
+  # Publishes message to one of 3 available queues (products), with given quantity payload
   def handle_cast({:buy, quantity}, channel) do
     Basic.publish(channel, @exchange, Integer.to_string(:rand.uniform(3)),
       Integer.to_string(quantity))

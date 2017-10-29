@@ -1,7 +1,7 @@
-defmodule SupplyChain.Consumer do
+defmodule SupermarketSupplyChain.Consumer do
   use GenServer
   use AMQP
-  alias SupplyChain.Product
+  alias SupermarketSupplyChain.Product
 
   @exchange "supply_chain"
 
@@ -13,9 +13,11 @@ defmodule SupplyChain.Consumer do
     {:ok, connection} = Connection.open("amqp://guest:guest@localhost")
     {:ok, channel} = Channel.open(connection)
 
+    IO.puts "init #{product.name}"
+
     queue_name = "amqp.queue." <> product.name
     Exchange.direct(channel, @exchange, durable: true)
-    Queue.declare(channel, queue_name, durable: true)
+    Queue.declare(channel, queue_name, exclusive: true)
     Queue.bind(channel, queue_name, @exchange, routing_key: product.id)
 
     Basic.qos(channel, prefetch_count: 10)

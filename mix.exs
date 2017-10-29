@@ -1,4 +1,4 @@
-defmodule SupermarketSupplyChainRabbitmq.Mixfile do
+defmodule SupermarketSupplyChain.Mixfile do
   use Mix.Project
 
   def project do
@@ -15,7 +15,7 @@ defmodule SupermarketSupplyChainRabbitmq.Mixfile do
   def application do
     [
       extra_applications: [:logger, :amqp],
-      mod: {SupermarketSupplyChainRabbitmq.Application, []}
+      mod: {SupermarketSupplyChain.Application, []}
     ]
   end
 

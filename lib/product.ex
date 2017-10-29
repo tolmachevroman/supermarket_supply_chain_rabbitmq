@@ -1,4 +1,4 @@
-defmodule SupplyChain.Product do
+defmodule SupermarketSupplyChain.Product do
 
   @default_quantity "10000"
   @threshold "7000"

@@ -1,4 +1,4 @@
-defmodule SupermarketSupplyChainRabbitmq.Supervisor do
+defmodule SupermarketSupplyChain.Supervisor do
   use Supervisor
 
   def start_link(products) do
@@ -7,11 +7,10 @@ defmodule SupermarketSupplyChainRabbitmq.Supervisor do
 
   def init(products) do
 
-    child_processes = Enum.reduce(
+    child_processes = Enum.map(
       products,
-      [],
-      fn product, list ->
-         [worker(SupplyChain.Consumer, [product], id: product.id) | list]
+      fn product ->
+         worker(SupermarketSupplyChain.Consumer, [product], id: product.id)
        end
     )
 
