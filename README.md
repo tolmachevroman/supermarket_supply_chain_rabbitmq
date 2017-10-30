@@ -87,4 +87,71 @@ def handle_info({:basic_deliver, payload, %{delivery_tag: tag, redelivered: _red
 end
 ```
 
+Here we apply desired logic depending on quantity requested and actual quantity of the Product. Depending on it we acknowledge or reject the message and update the quantity.
 
+```elixir
+defp process_order(channel, tag, product_id, quantity) do
+  product = ProductsServer.find_product(product_id)
+
+  new_quantity = String.to_integer(product.quantity) - String.to_integer(quantity)
+
+  # Reject or acknowledge the message depending on quantity requested, and update state of the product
+  cond do
+     new_quantity < 0 ->
+        IO.puts "Cannot buy #{product.name}, not enough quantity"
+        Basic.reject(channel, tag, requeue: false)
+        ProductsServer.update_quantity(product.id, product.quantity)
+    new_quantity < String.to_integer(Product.threshold) ->
+        IO.puts "Buying more #{product.name}..."
+        Basic.ack(channel, tag)
+        ProductsServer.update_quantity(product.id, Product.default_quantity)
+    true ->
+        IO.puts "Ok, thanks for buying"
+        Basic.ack(channel, tag)
+        ProductsServer.update_quantity(product.id, Integer.to_string(new_quantity))
+  end
+end
+```
+
+Finally, [Producer](lib/producer.ex) is a GenServer that connects to the same Exchange and publishes messages. To generate constant message flow, we'll loop message publishing:
+
+```elixir
+# Emulate one-time buy message
+def buy(quantity) do
+  GenServer.cast(__MODULE__, {:buy, quantity})
+end
+
+# Emulate constant flow of messages
+def loop_buying() do
+  # Buy up to 3000 items of a product
+  buy(:rand.uniform(3000))
+  loop_buying()
+end
+
+# Publishes message to one of available queues (products), with given quantity payload
+def handle_cast({:buy, quantity}, channel) do
+  # Randomly publish message to some queue by it's routing id, which is product's id
+  # Payload takes form of "product's id . quantity"
+  queue_routing_key = Integer.to_string(:rand.uniform(1000))
+  payload = Integer.to_string(:rand.uniform(1000)) <> "." <> Integer.to_string(quantity)
+  Basic.publish(channel, @exchange, queue_routing_key, payload)
+  {:noreply, channel}
+end
+```
+
+Running the dummy test
+
+```elixir
+@tag timeout: :infinity
+test "run message producer" do
+  SupermarketSupplyChain.Producer.start_link
+  SupermarketSupplyChain.Producer.loop_buying()
+  assert true
+end
+```
+
+we can see in the dashboard that RabbitMQ processes messages successfully, maintaining queues healthy even with that constant flood of events:
+
+![](https://user-images.githubusercontent.com/560815/32159054-84f5cfee-bd2a-11e7-984f-53869eb4be30.png)
+
+![](https://user-images.githubusercontent.com/560815/32159055-851b519c-bd2a-11e7-9fa5-6c647e1bdb2e.png)
