@@ -3,12 +3,8 @@ defmodule SupermarketSupplyChainTest do
 
   @tag timeout: :infinity
   test "run multiple producers" do
-
-    for n <- 1.. 1000 do
-      {:ok, pid} = SupermarketSupplyChain.Producer.start_link
-      SupermarketSupplyChain.Producer.loop_buying(pid)
-    end
-
+    SupermarketSupplyChain.Producer.start_link
+    SupermarketSupplyChain.Producer.loop_buying()
     assert true
   end
 

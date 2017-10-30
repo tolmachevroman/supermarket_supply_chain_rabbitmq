@@ -15,7 +15,7 @@ defmodule SupermarketSupplyChain.Consumer do
     {:ok, channel} = Channel.open(connection)
 
     Exchange.direct(channel, @exchange, durable: true)
-    
+
     # Declare queues, one per product, bound to Exchange by product's id
     for product <- products do
       queue_name = "amqp.queue." <> product.name
