@@ -5,7 +5,7 @@ defmodule SupermarketSupplyChain.Producer do
   @exchange "supply_chain"
 
   def start_link do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    {:ok, pid} = GenServer.start_link(__MODULE__, [])
   end
 
   def init(_) do
@@ -15,22 +15,24 @@ defmodule SupermarketSupplyChain.Producer do
   end
 
   # Emulate one-time buy message
-  def buy(quantity) do
-    GenServer.cast(__MODULE__, {:buy, quantity})
+  def buy(pid, quantity) do
+    GenServer.cast(pid, {:buy, quantity})
   end
 
   # Emulate constant flow of messages
-  def loop_buying do
-    buy(:rand.uniform(1000))
-    # Adding even 1 millisecond of timeout between messages dramatically diminishes load
-    :timer.sleep(1)
-    loop_buying()
+  def loop_buying(pid) do
+    buy(pid, :rand.uniform(3000))
+    # Add random millisecond delay between messages
+    :timer.sleep(:rand.uniform(1))
+    loop_buying(pid)
   end
 
-  # Publishes message to one of 3 available queues (products), with given quantity payload
+  # Publishes message to one of available queues (products), with given quantity payload
   def handle_cast({:buy, quantity}, channel) do
-    Basic.publish(channel, @exchange, Integer.to_string(:rand.uniform(3)),
-      Integer.to_string(quantity))
+    # Routing keys are products' ids
+    queue_routing_key = Integer.to_string(:rand.uniform(1000))
+    payload = Integer.to_string(:rand.uniform(1000)) <> "." <> Integer.to_string(quantity)
+    Basic.publish(channel, @exchange, queue_routing_key, payload)
     {:noreply, channel}
   end
 end

@@ -6,13 +6,8 @@ defmodule SupermarketSupplyChain.Application do
   use Application
   alias SupermarketSupplyChain.Product
 
-  # @products [
-  #   %Product{id: "1", name: "Milk"},
-  #   %Product{id: "2", name: "Beer"},
-  #   %Product{id: "3", name: "Juice"}
-  # ]
-
-  @products Enum.map(1..300, fn n ->
+  # [ %Product{id: "1", name: "Product1", quantity: "10000"}, ... ]
+  @products Enum.map(1..1000, fn n ->
       %Product{id: Integer.to_string(n), name: "Product" <> Integer.to_string(n)}
     end)
 
