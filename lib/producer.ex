@@ -27,7 +27,8 @@ defmodule SupermarketSupplyChain.Producer do
 
   # Publishes message to one of available queues (products), with given quantity payload
   def handle_cast({:buy, quantity}, channel) do
-    # Routing keys are products' ids
+    # Randomly publish message to some queue by it's routing id, which is product's id
+    # Payload takes form of "product's id . quantity"
     queue_routing_key = Integer.to_string(:rand.uniform(1000))
     payload = Integer.to_string(:rand.uniform(1000)) <> "." <> Integer.to_string(quantity)
     Basic.publish(channel, @exchange, queue_routing_key, payload)

@@ -45,7 +45,6 @@ defmodule SupermarketSupplyChain.Consumer do
 
   # Sent by the broker when a message is delivered
   def handle_info({:basic_deliver, payload, %{delivery_tag: tag, redelivered: _redelivered}}, channel) do
-
     # Payload comes in form of String, and contains product id and requested quantity
     # For example, "1.1500"
     # We then process the order, depending on actual quantity the product has
@@ -77,7 +76,6 @@ defmodule SupermarketSupplyChain.Consumer do
           Basic.ack(channel, tag)
           ProductsServer.update_quantity(product.id, Integer.to_string(new_quantity))
     end
-
   end
 
 end

@@ -4,8 +4,7 @@ defmodule SupermarketSupplyChain.Supervisor do
   alias SupermarketSupplyChain.ProductsServer
 
   def start_link(products) do
-
-    # Consumer receives messages from RabbitMQ and passes them to ProductStore to update items
+    # Consumer receives messages from RabbitMQ and passes them to ProductsServer to update items
     children = [
       worker(Consumer, [products]),
       worker(ProductsServer, [products])
